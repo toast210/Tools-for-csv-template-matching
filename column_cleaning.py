@@ -64,28 +64,30 @@ operator = ['Equal','Contains']
 
 def delete_rows(df):
     st.subheader("Row Operations")
-
     if "working_df" not in st.session_state or st.session_state.working_df is None:
         st.session_state.working_df = df.copy()
 
+    # Only offer columns that were actually matched (present in to_be_matched_columns)
+    matched_columns = [c for c in st.session_state.working_df.columns.tolist() if c in to_be_matched_columns]
+
+    if not matched_columns:
+        st.warning("No matched columns available to filter on.")
+        return st.session_state.working_df
+
     operators = ["Is Empty", "Is Not Empty", "Equals", "Not Equals", "Contains", "Greater Than", "Less Than"]
     actions = ["Delete matching rows", "Keep only matching rows"]
-
     col1, col2, col3 = st.columns(3)
     with col1:
-        selected_column = st.selectbox("Column", st.session_state.working_df.columns.tolist(), key="row_op_column")
+        selected_column = st.selectbox("Column", matched_columns, key="row_op_column")
     with col2:
         selected_operator = st.selectbox("Operator", operators, key="row_op_operator")
     with col3:
         selected_action = st.selectbox("Action", actions, key="row_op_action")
-
     needs_value = selected_operator not in ("Is Empty", "Is Not Empty")
     value = st.text_input("Value", key="row_op_value") if needs_value else None
-
     if st.button("Apply Operation"):
         df_current = st.session_state.working_df
         col_data = df_current[selected_column]
-
         if selected_operator == "Is Empty":
             mask = col_data.isna() | (col_data.astype(str).str.strip() == "")
         elif selected_operator == "Is Not Empty":
@@ -100,24 +102,19 @@ def delete_rows(df):
             mask = pd.to_numeric(col_data, errors='coerce') > pd.to_numeric(value, errors='coerce')
         elif selected_operator == "Less Than":
             mask = pd.to_numeric(col_data, errors='coerce') < pd.to_numeric(value, errors='coerce')
-
         before = len(df_current)
         if selected_action == "Delete matching rows":
             st.session_state.working_df = df_current[~mask]
         else:
             st.session_state.working_df = df_current[mask]
         after = len(st.session_state.working_df)
-
         st.success(
             f"{selected_action}: {selected_column} {selected_operator} {value or ''} — {before - after} row(s) removed" if selected_action == "Delete matching rows" else f"Kept {after} of {before} rows")
-
     st.write(f"Current row count: {len(st.session_state.working_df)}")
     st.dataframe(st.session_state.working_df.head(20))
-
     if st.button("Reset row operations"):
         st.session_state.working_df = df.copy()
         st.rerun()
-
     return st.session_state.working_df
 
 def facebook_template(df):
