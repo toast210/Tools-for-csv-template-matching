@@ -7,7 +7,7 @@ A Streamlit app that takes a raw CSV export and turns it into a clean, template-
 1. **Upload a CSV** — handles encoding issues automatically (falls back from UTF-8 to Latin-1) and skips malformed lines instead of crashing on them.
 2. **Map columns** — pick which of your CSV's columns correspond to standard fields (`full name`, `email`, `company`, `city`, `state`, `country`, `phone`, `linkedin url`, `company website`) via dropdowns. No need to rename columns by hand.
 3. **Clean rows** — apply operator-based row filters (column *is empty*, *equals*, *contains*, *greater than*, etc.) to delete or keep matching rows. Operations stack, so you can chain multiple cleanup steps.
-4. **Export to a template** — generate a platform-ready CSV (currently: Facebook Custom Audience format — `fn`, `ln`, `phone`, `ct`, `st`, `country`) and download it directly from the browser.
+4. **Export to a template** — generate a platform-ready CSV (currently: Facebook, google and linkedin Custom Audience format, linkedin company match is also there) and download it directly from the browser.
 
 ## Why
 
@@ -44,6 +44,6 @@ This opens the app in your browser at `http://localhost:8501`. Upload a CSV, map
 
 ## Roadmap / ideas
 
-- [ ] Additional export templates (Google Ads Customer Match, Mailchimp, etc.)
+- [ ] Additional export templates (Mailchimp, etc.)
 - [ ] Undo for individual row operations (currently: full reset only)
 - [ ] Duplicate-column detection when multiple source columns map to the same target field
