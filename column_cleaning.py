@@ -127,13 +127,14 @@ def facebook_template(df):
         # Rename columns as requested
         df_fb = df_fb.rename(columns={
             'phone': 'phone',
+            'email':'email',
             'city': 'ct',
             'state': 'st',
             'country': 'country'
         })
 
         # Keep only the Facebook-required columns, in order
-        facebook_columns = ['fn', 'ln', 'phone', 'ct', 'st', 'country']
+        facebook_columns = ['fn', 'ln', 'email', 'phone', 'ct', 'st', 'country']
         available_columns = [c for c in facebook_columns if c in df_fb.columns]
         missing_columns = [c for c in facebook_columns if c not in df_fb.columns]
 
