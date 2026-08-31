@@ -11,12 +11,12 @@ def _read(selected_file):
     selected_file.seek(0)  # rewind — Streamlit reruns the script on every interaction,
                            # and the uploaded file's read position persists across reruns
     df = None
-        try:
-        df = pd.read_csv(selected_file, encoding='utf-8', on_bad_lines='skip', sep=',', dtype=str)
+    try:
+        df = pd.read_csv(selected_file, encoding='utf-8', on_bad_lines='skip', sep=',', dtype= str)
     except UnicodeDecodeError:
         try:
-            selected_file.seek(0)
-            df = pd.read_csv(selected_file, encoding='latin1', on_bad_lines='skip', sep=',', dtype=str)
+            selected_file.seek(0)  # rewind again before retrying with a different encoding
+            df = pd.read_csv(selected_file, encoding='latin1', on_bad_lines='skip', sep=',', dtype = str)
         except UnicodeDecodeError:
             print("UnicodeDecodeError: Could not decode the file with utf-8 or latin1. Please try a different encoding, e.g., 'ISO-8859-1' or 'utf-16-le'.")
             return None, None
