@@ -7,18 +7,19 @@ def _read(selected_file):
     if not selected_file:
         print("No file was selected.")
         return None, None
-
     print(f"Opening and reading: {selected_file}...")
-
     selected_file.seek(0)  # rewind — Streamlit reruns the script on every interaction,
-                            # and the uploaded file's read position persists across reruns
+                           # and the uploaded file's read position persists across reruns
     df = None
     try:
         df = pd.read_csv(selected_file, encoding='utf-8', on_bad_lines='skip', sep=',')
-        except UnicodeDecodeError:
+    except UnicodeDecodeError:
         try:
             selected_file.seek(0)  # rewind again before retrying with a different encoding
             df = pd.read_csv(selected_file, encoding='latin1', on_bad_lines='skip', sep=',')
+        except UnicodeDecodeError:
+            print("UnicodeDecodeError: Could not decode the file with utf-8 or latin1. Please try a different encoding, e.g., 'ISO-8859-1' or 'utf-16-le'.")
+            return None, None
         except pd.errors.ParserError as e:
             print(f"ParserError: An error occurred while parsing the CSV after UnicodeDecodeError. {e}")
             print("Try specifying the separator (e.g., sep=';') or inspect the file for malformed lines.")
