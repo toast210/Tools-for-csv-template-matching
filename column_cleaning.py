@@ -10,6 +10,8 @@ def _read(selected_file):
 
     print(f"Opening and reading: {selected_file}...")
 
+    selected_file.seek(0)  # rewind — Streamlit reruns the script on every interaction,
+                            # and the uploaded file's read position persists across reruns
     df = None
     try:
         df = pd.read_csv(selected_file, encoding='utf-8', on_bad_lines='skip', sep=',')
