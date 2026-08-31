@@ -15,8 +15,9 @@ def _read(selected_file):
     df = None
     try:
         df = pd.read_csv(selected_file, encoding='utf-8', on_bad_lines='skip', sep=',')
-    except UnicodeDecodeError:
+        except UnicodeDecodeError:
         try:
+            selected_file.seek(0)  # rewind again before retrying with a different encoding
             df = pd.read_csv(selected_file, encoding='latin1', on_bad_lines='skip', sep=',')
         except UnicodeDecodeError:
             print("UnicodeDecodeError: Could not decode the file with utf-8 or latin1. Please try a different encoding, e.g., 'ISO-8859-1' or 'utf-16-le'.")
