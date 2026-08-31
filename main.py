@@ -6,7 +6,7 @@ import column_cleaning as sdc
 st.title("Column Matcher for data cleaning")
 
 
-uploaded_file = st.file_uploader("Upload CSV", type="csv")
+uploaded_file = st.file_uploader("Upload CSV or Excel", type=["csv", "xlsx", "xls"])
 
 if uploaded_file is not None:
     if "matched_df" not in st.session_state:
