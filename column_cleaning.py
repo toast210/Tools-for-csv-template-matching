@@ -1,11 +1,7 @@
 import pandas as pd
 import os
 import streamlit as st
-
-#reading the file in different formats
-import pandas as pd
-import os
-import streamlit as st
+import openpyxl
 
 # reading the file in different formats
 def _read(selected_file):
