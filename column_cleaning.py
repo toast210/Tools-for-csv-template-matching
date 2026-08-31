@@ -138,7 +138,7 @@ def facebook_template(df):
 
         df_fb['fn'] = df_fb['full name'].apply(lambda x: x.split(' ')[0] if pd.notna(x) else '')
         df_fb['ln'] = df_fb['full name'].apply(lambda x: ' '.join(x.split(' ')[1:]) if pd.notna(x) and len(x.split(' ')) > 1 else '')
-        df_fb['phone'] = df['phone'].astype(str).str.replace(r'[^\d]', '', regex=True)
+        df_fb['phone'] = '+' + df['phone'].astype(str).str.replace(r'[^\d]', '', regex=True)
         # Rename columns as requested
         df_fb = df_fb.rename(columns={
             'phone': 'phone',
