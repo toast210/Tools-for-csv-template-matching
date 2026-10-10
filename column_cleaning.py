@@ -151,20 +151,42 @@ def generate_linkedin_contact_template(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def generate_linkedin_company_template(df: pd.DataFrame) -> pd.DataFrame:
-    """Builds the LinkedIn Company List upload schema and drops duplicates."""
+    """
+    Builds the LinkedIn Company List upload schema including
+    geographic disambiguation attributes (city, state, postalcode, country).
+    """
     df_out = pd.DataFrame(index=df.index)
 
-    df_out['companyName'] = df.get('company', '')
-    df_out['companyWebsite'] = df.get('company website', '')
-    df_out['companyLinkedInPageURL'] = df.get('linkedin url company', '')
+    # Identifiers
+    df_out['companyname'] = df.get('company', '')
+    df_out['companywebsite'] = df.get('company website', '')
+    df_out['linkedincompanypageurl'] = df.get('linkedin url company', '')
+    
+    # Geographic disambiguation
+    df_out['city'] = df.get('city', '')
+    df_out['state'] = df.get('state', '')
+    df_out['postalcode'] = df.get('pin_code', '')
     df_out['country'] = df.get('country', '')
 
-    target_cols = ['companyName', 'companyWebsite', 'companyLinkedInPageURL', 'country']
+    target_cols = [
+        'companyname',
+        'companywebsite',
+        'linkedincompanypageurl',
+        'city',
+        'state',
+        'postalcode',
+        'country'
+    ]
     df_out = df_out[[c for c in target_cols if c in df_out.columns]]
 
-    # Deduplicate against the first available company identifier
-    dedupe_col = next((c for c in ['companyName', 'companyWebsite', 'companyLinkedInPageURL'] if c in df_out.columns), None)
+    # Deduplicate against the first valid available identifier
+    dedupe_col = next(
+        (c for c in ['companywebsite', 'linkedincompanypageurl', 'companyname'] if c in df_out.columns),
+        None
+    )
     if dedupe_col:
         df_out = df_out.drop_duplicates(subset=[dedupe_col], keep='first')
+
+    return df_out
 
     return df_out
