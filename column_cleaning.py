@@ -166,7 +166,11 @@ def generate_linkedin_contact_template(df: pd.DataFrame) -> pd.DataFrame:
 
     target_cols = ['email', 'full name', 'companyName', 'city', 'state', 'country', 'phone', 'linkedinUrl']
     return df_out[[c for c in target_cols if c in df_out.columns]]
-
+def get_clean_column(df: pd.DataFrame, col_name: str) -> pd.Series:
+    """Safely extracts a column as a trimmed string series, returning an empty series if missing."""
+    if col_name in df.columns:
+        return df[col_name].fillna('').astype(str).str.strip()
+    return pd.Series('', index=df.index, dtype=str)
 
 def generate_linkedin_company_template(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -175,16 +179,16 @@ def generate_linkedin_company_template(df: pd.DataFrame) -> pd.DataFrame:
     """
     df_out = pd.DataFrame(index=df.index)
 
-    # Core Identifiers
-    df_out['companyname'] = df.get('company', '').fillna('').astype(str).str.strip()
-    df_out['companywebsite'] = clean_domain_series(df['company website']) if 'company website' in df.columns else ""
-    df_out['linkedincompanypageurl'] = df.get('linkedin url company', '').fillna('').astype(str).str.strip()
+    # Core Identifiers (safe against missing/unmapped columns)
+    df_out['companyname'] = get_clean_column(df, 'company')
+    df_out['companywebsite'] = clean_domain_series(df['company website']) if 'company website' in df.columns else pd.Series('', index=df.index)
+    df_out['linkedincompanypageurl'] = get_clean_column(df, 'linkedin url company')
 
     # Geographic Disambiguation
-    df_out['city'] = df.get('city', '').fillna('').astype(str).str.strip()
-    df_out['state'] = df.get('state', '').fillna('').astype(str).str.strip()
-    df_out['postalcode'] = df.get('pin_code', '').fillna('').astype(str).str.strip()
-    df_out['country'] = df.get('country', '').fillna('').astype(str).str.strip()
+    df_out['city'] = get_clean_column(df, 'city')
+    df_out['state'] = get_clean_column(df, 'state')
+    df_out['postalcode'] = get_clean_column(df, 'pin_code')
+    df_out['country'] = get_clean_column(df, 'country')
 
     # Drop rows that lack all three primary identifiers (LinkedIn cannot match them)
     has_valid_identifier = (
@@ -196,12 +200,12 @@ def generate_linkedin_company_template(df: pd.DataFrame) -> pd.DataFrame:
 
     # Safe Deduplication:
     # 1. If websites exist, deduplicate populated websites (ignore blanks)
-    # 2. Then deduplicate remaining rows by company name + country
     if 'companywebsite' in df_out.columns:
         with_site = df_out[df_out['companywebsite'] != ""].drop_duplicates(subset=['companywebsite'], keep='first')
         without_site = df_out[df_out['companywebsite'] == ""]
         df_out = pd.concat([with_site, without_site], ignore_index=True)
 
+    # 2. Deduplicate remaining rows by company name + country
     if 'companyname' in df_out.columns:
         dedupe_keys = ['companyname', 'country'] if 'country' in df_out.columns else ['companyname']
         df_out = df_out.drop_duplicates(subset=dedupe_keys, keep='first')
