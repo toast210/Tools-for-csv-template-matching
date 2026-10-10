@@ -16,6 +16,7 @@ TO_BE_MATCHED_COLUMNS = [
     'company website'
 ]
 
+
 def read_file(uploaded_file) -> pd.DataFrame:
     """Reads CSV or Excel file safely into a string-typed DataFrame."""
     if not uploaded_file:
@@ -44,6 +45,23 @@ def clean_phone_series(series: pd.Series) -> pd.Series:
         digits = re.sub(r"[^\d]", "", str(val))
         return f"+{digits}" if digits else ""
     return series.apply(_format)
+
+
+def clean_domain_series(series: pd.Series) -> pd.Series:
+    """
+    Strips schemes (http/https), 'www.', paths, and parameters 
+    to extract the bare root domain for optimal LinkedIn matching.
+    e.g. 'https://www.acme.com/about?ref=1' -> 'acme.com'
+    """
+    def _clean(val):
+        if pd.isna(val) or not str(val).strip():
+            return ""
+        s = str(val).strip().lower()
+        s = re.sub(r"^https?://", "", s)
+        s = re.sub(r"^www\.", "", s)
+        s = s.split("/")[0].split("?")[0].split("#")[0]
+        return s.strip()
+    return series.apply(_clean)
 
 
 def split_full_name(series: pd.Series):
@@ -152,21 +170,41 @@ def generate_linkedin_contact_template(df: pd.DataFrame) -> pd.DataFrame:
 
 def generate_linkedin_company_template(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Builds the LinkedIn Company List upload schema including
-    geographic disambiguation attributes (city, state, postalcode, country).
+    Builds the LinkedIn Company List upload schema including geographic attributes,
+    domain normalization, and safe deduplication that preserves companies without websites.
     """
     df_out = pd.DataFrame(index=df.index)
 
-    # Identifiers
-    df_out['companyname'] = df.get('company', '')
-    df_out['companywebsite'] = df.get('company website', '')
-    df_out['linkedincompanypageurl'] = df.get('linkedin url company', '')
-    
-    # Geographic disambiguation
-    df_out['city'] = df.get('city', '')
-    df_out['state'] = df.get('state', '')
-    df_out['postalcode'] = df.get('pin_code', '')
-    df_out['country'] = df.get('country', '')
+    # Core Identifiers
+    df_out['companyname'] = df.get('company', '').fillna('').astype(str).str.strip()
+    df_out['companywebsite'] = clean_domain_series(df['company website']) if 'company website' in df.columns else ""
+    df_out['linkedincompanypageurl'] = df.get('linkedin url company', '').fillna('').astype(str).str.strip()
+
+    # Geographic Disambiguation
+    df_out['city'] = df.get('city', '').fillna('').astype(str).str.strip()
+    df_out['state'] = df.get('state', '').fillna('').astype(str).str.strip()
+    df_out['postalcode'] = df.get('pin_code', '').fillna('').astype(str).str.strip()
+    df_out['country'] = df.get('country', '').fillna('').astype(str).str.strip()
+
+    # Drop rows that lack all three primary identifiers (LinkedIn cannot match them)
+    has_valid_identifier = (
+        (df_out['companyname'] != "") |
+        (df_out['companywebsite'] != "") |
+        (df_out['linkedincompanypageurl'] != "")
+    )
+    df_out = df_out[has_valid_identifier].copy()
+
+    # Safe Deduplication:
+    # 1. If websites exist, deduplicate populated websites (ignore blanks)
+    # 2. Then deduplicate remaining rows by company name + country
+    if 'companywebsite' in df_out.columns:
+        with_site = df_out[df_out['companywebsite'] != ""].drop_duplicates(subset=['companywebsite'], keep='first')
+        without_site = df_out[df_out['companywebsite'] == ""]
+        df_out = pd.concat([with_site, without_site], ignore_index=True)
+
+    if 'companyname' in df_out.columns:
+        dedupe_keys = ['companyname', 'country'] if 'country' in df_out.columns else ['companyname']
+        df_out = df_out.drop_duplicates(subset=dedupe_keys, keep='first')
 
     target_cols = [
         'companyname',
@@ -177,16 +215,4 @@ def generate_linkedin_company_template(df: pd.DataFrame) -> pd.DataFrame:
         'postalcode',
         'country'
     ]
-    df_out = df_out[[c for c in target_cols if c in df_out.columns]]
-
-    # Deduplicate against the first valid available identifier
-    dedupe_col = next(
-        (c for c in ['companywebsite', 'linkedincompanypageurl', 'companyname'] if c in df_out.columns),
-        None
-    )
-    if dedupe_col:
-        df_out = df_out.drop_duplicates(subset=[dedupe_col], keep='first')
-
-    return df_out
-
-    return df_out
+    return df_out[[c for c in target_cols if c in df_out.columns]].reset_index(drop=True)
